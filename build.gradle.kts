@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "org.koitharu"
-version = "0.1.1"
+version = "0.1.11"
 
 tasks.withType<Jar> {
     manifest {
@@ -33,7 +33,7 @@ dependencies {
     testImplementation(kotlin("test"))
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.10.2")
     implementation("com.github.ajalt.clikt:clikt-core:5.0.3")
-    implementation("com.github.YakaTeam:kotatsu-parsers:4d94658d2e")
+    implementation("com.github.YakaTeam:kotatsu-parsers:-SNAPSHOT")
     implementation("com.squareup.okhttp3:okhttp:5.1.0")
     implementation("com.squareup.okio:okio:3.11.0")
     implementation("org.openjdk.nashorn:nashorn-core:15.6")
