@@ -60,7 +60,7 @@ jobs:
         shell: bash
         run: |
           jlink \
-            --add-modules java.base,java.logging,java.desktop,java.scripting,java.xml,java.naming,java.sql,jdk.unsupported,jdk.crypto.ec,jdk.crypto.cryptoki \
+            --add-modules java.base,java.logging,java.desktop,java.scripting,java.xml,java.naming,java.sql,java.net.http,jdk.dynalink,jdk.unsupported,jdk.crypto.ec,jdk.crypto.cryptoki \
             --strip-debug \
             --no-man-pages \
             --no-header-files \
