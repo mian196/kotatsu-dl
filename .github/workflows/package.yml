@@ -118,15 +118,21 @@ jobs:
             --dest dist-installers
 
       # Zip/Tar the portable app-image for easy distribution
-      - name: Zip Portable App Image (Windows/macOS)
-        if: matrix.pack_format == 'zip'
+      - name: Zip Portable App Image (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          Compress-Archive -Path dist/kotatsu-dl -DestinationPath ${{ matrix.artifact_name }}.zip
+
+      - name: Zip Portable App Image (macOS)
+        if: matrix.os == 'macos-latest'
         shell: bash
         run: |
           cd dist
-          zip -r ../${{ matrix.artifact_name }}.zip kotatsu-dl*
+          zip -r ../${{ matrix.artifact_name }}.zip kotatsu-dl.app
 
       - name: Tar Portable App Image (Linux)
-        if: matrix.pack_format == 'tar.gz'
+        if: matrix.os == 'ubuntu-latest'
         shell: bash
         run: |
           cd dist
