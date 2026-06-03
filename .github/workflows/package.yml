@@ -1,0 +1,130 @@
+name: Package Native Executables
+
+on:
+  push:
+    tags:
+      - "v*" # Trigger on version tags (e.g. v0.1.11)
+  workflow_dispatch: # Allow manual trigger from GitHub UI
+
+jobs:
+  build:
+    name: Package for ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            artifact_name: kotatsu-dl-windows
+            pack_format: zip
+          - os: ubuntu-latest
+            artifact_name: kotatsu-dl-linux
+            pack_format: tar.gz
+          - os: macos-latest
+            artifact_name: kotatsu-dl-macos
+            pack_format: zip
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+          cache: "gradle"
+
+      - name: Make Gradle Wrapper Executable
+        if: matrix.os != 'windows-latest'
+        run: chmod +x ./gradlew
+
+      - name: Build Shadow Jar
+        run: ./gradlew shadowJar
+
+      - name: Create Custom Minimal JRE
+        run: |
+          jlink \
+            --add-modules java.base,java.logging,java.desktop,java.scripting,java.xml,java.naming,java.sql,jdk.unsupported,jdk.crypto.ec,jdk.crypto.cryptoki \
+            --strip-debug \
+            --no-man-pages \
+            --no-header-files \
+            --compress=2 \
+            --output custom-jre
+
+      - name: Package Application (App Image)
+        run: |
+          jpackage \
+            --type app-image \
+            --name kotatsu-dl \
+            --input build/libs \
+            --main-jar kotatsu-dl.jar \
+            --main-class org.koitharu.kotatsu.dl.MainKt \
+            --runtime-image custom-jre \
+            --dest dist
+
+      # Package installers (optional, but highly professional)
+      - name: Package Installer (MSI)
+        if: matrix.os == 'windows-latest'
+        run: |
+          jpackage \
+            --type msi \
+            --name kotatsu-dl \
+            --input build/libs \
+            --main-jar kotatsu-dl.jar \
+            --main-class org.koitharu.kotatsu.dl.MainKt \
+            --runtime-image custom-jre \
+            --win-dir-chooser \
+            --dest dist-installers
+
+      - name: Package Installer (DEB)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          jpackage \
+            --type deb \
+            --name kotatsu-dl \
+            --input build/libs \
+            --main-jar kotatsu-dl.jar \
+            --main-class org.koitharu.kotatsu.dl.MainKt \
+            --runtime-image custom-jre \
+            --dest dist-installers
+
+      - name: Package Installer (DMG)
+        if: matrix.os == 'macos-latest'
+        run: |
+          jpackage \
+            --type dmg \
+            --name kotatsu-dl \
+            --input build/libs \
+            --main-jar kotatsu-dl.jar \
+            --main-class org.koitharu.kotatsu.dl.MainKt \
+            --runtime-image custom-jre \
+            --dest dist-installers
+
+      # Zip/Tar the portable app-image for easy distribution
+      - name: Zip Portable App Image (Windows/macOS)
+        if: matrix.pack_format == 'zip'
+        shell: bash
+        run: |
+          cd dist
+          zip -r ../${{ matrix.artifact_name }}.zip kotatsu-dl*
+
+      - name: Tar Portable App Image (Linux)
+        if: matrix.pack_format == 'tar.gz'
+        run: |
+          cd dist
+          tar -czf ../${{ matrix.artifact_name }}.tar.gz kotatsu-dl
+
+      # Upload portable executable builds
+      - name: Upload Portable Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}-portable
+          path: ${{ matrix.artifact_name }}.${{ matrix.pack_format }}
+
+      # Upload installer builds
+      - name: Upload Installer Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}-installer
+          path: dist-installers/*
